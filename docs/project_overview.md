@@ -69,3 +69,51 @@ API rate limiting respected (1 request/sec)
 Pagination not yet implemented (limit=100)
 Some fields may be NULL (normal for MusicBrainz data)
 
+
+⚙️ Step 4 — Analytics Layer (NEW)
+
+The project now includes a full analytical layer built on top of raw MusicBrainz data.
+
+📊 analytics.artist_stats
+
+Aggregated table at artist level:
+
+Number of albums per artist
+Number of recordings per artist
+Average recording length
+Artist ranking based on productivity
+
+👉 Used for:
+
+artist comparison
+productivity analysis
+Power BI top-level KPIs
+📀 analytics.albums
+
+Aggregated table at album level:
+
+Number of recordings per album
+Average track duration per album
+
+👉 Used for:
+
+album comparison
+content richness analysis
+album-level KPIs in Power BI
+🧠 Data modeling approach
+
+The analytics layer is built using SQL aggregations on top of raw tables:
+
+musicbrainz_raw.artist
+musicbrainz_raw.release_group
+musicbrainz_raw.recording
+
+👉 This introduces:
+
+star schema-like structure
+separation between raw and analytical data
+BI-ready datasets
+⚠️ Notes
+Album-level metrics are approximated at artist level in current version
+Future improvement: full track → album mapping via release hierarchy
+API rate limiting respected (1 request/sec)
