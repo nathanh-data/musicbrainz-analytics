@@ -117,3 +117,13 @@ BI-ready datasets
 Album-level metrics are approximated at artist level in current version
 Future improvement: full track → album mapping via release hierarchy
 API rate limiting respected (1 request/sec)
+
+
+🔹 Improved Data Model
+
+Implemented proper MusicBrainz hierarchy:
+
+release_group → release → track → recording
+
+This enables accurate album-level analytics (track count, duration, etc.)
+

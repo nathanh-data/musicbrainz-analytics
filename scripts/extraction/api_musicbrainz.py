@@ -25,7 +25,7 @@ def safe_get(url, params, retries=3):
     print(f"Échec après {retries} tentatives pour {url}")
     return None
 
-def fetch_french_artists(limit=5):
+def fetch_french_artists(limit=50):
     params = {
         "query": "area:France AND (type:person OR type:group)",
         "fmt": "json",
@@ -43,32 +43,20 @@ def fetch_release_groups(artist_mbid):
     params = {
         "artist": artist_mbid,
         "fmt": "json",
-        "limit": 100
+        "limit": 200
     }
     response = safe_get(url, params)
     if response:
         return response.json().get("release-groups", [])
     return []
 
-def fetch_recordings(artist_mbid):
-    url = "https://musicbrainz.org/ws/2/recording/"
-    params = {
-        "artist": artist_mbid,
-        "fmt": "json",
-        "limit": 100
-    }
-    response = safe_get(url, params)
-    if response:
-        return response.json().get("recordings", [])
-    return []
-
-def fetch_releases(artist_mbid):
+def fetch_releases_by_release_group(rg_mbid):
     url = "https://musicbrainz.org/ws/2/release/"
     params = {
-        "artist": artist_mbid,
+        "release-group": rg_mbid,
         "fmt": "json",
         "limit": 100,
-        "inc": "labels"
+        "inc": "recordings"
     }
     response = safe_get(url, params)
     if response:
@@ -130,56 +118,55 @@ def insert_release_groups(artist_mbid, release_groups):
     except Exception as e:
         print("Erreur insertion release_group :", e)
 
-def insert_recordings(artist_mbid, recordings):
+def insert_releases_and_tracks(releases, rg_mbid):
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                for rec in recordings:
+                release_count = 0
+                track_count = 0
+
+                for rel in releases:
+                    release_id = rel.get("id")
+
                     cur.execute("""
-                        INSERT INTO musicbrainz_raw.recording
-                        (mbid, artist_mbid, title, length)
-                        VALUES (%s, %s, %s, %s)
+                        INSERT INTO musicbrainz_raw.release
+                        (mbid, release_group_mbid, title)
+                        VALUES (%s, %s, %s)
                         ON CONFLICT (mbid) DO NOTHING;
                     """, (
-                        rec.get("id"),
-                        artist_mbid,
-                        rec.get("title"),
-                        rec.get("length")
+                        release_id,
+                        rg_mbid,
+                        rel.get("title")
                     ))
-        print(f"{len(recordings)} recordings insérés pour {artist_mbid}")
-    except Exception as e:
-        print("Erreur insertion recording :", e)
+                    release_count += 1
 
-def insert_labels_from_releases(artist_mbid, releases):
-    try:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                count = 0
-                for rel in releases:
-                    for label_info in rel.get("label-info", []):
-                        label = label_info.get("label")
-                        if not label:
-                            continue
-                        cur.execute("""
-                            INSERT INTO musicbrainz_raw.label
-                            (mbid, artist_mbid, name, country)
-                            VALUES (%s, %s, %s, %s)
-                            ON CONFLICT (mbid) DO NOTHING;
-                        """, (
-                            label.get("id"),
-                            artist_mbid,
-                            label.get("name"),
-                            label.get("area", {}).get("name")
-                        ))
-                        count += 1
-        print(f"{count} labels insérés pour {artist_mbid}")
+                    for medium in rel.get("media", []):
+                        for track in medium.get("tracks", []):
+                            recording = track.get("recording")
+                            if not recording:
+                                continue
+                            cur.execute("""
+                                INSERT INTO musicbrainz_raw.track
+                                (mbid, release_mbid, recording_mbid, title, length)
+                                VALUES (%s, %s, %s, %s, %s)
+                                ON CONFLICT (mbid) DO NOTHING;
+                            """, (
+                                track.get("id"),
+                                release_id,
+                                recording.get("id"),
+                                track.get("title"),
+                                track.get("length")
+                            ))
+                            track_count += 1
+
+        print(f"{release_count} releases insérés | {track_count} tracks insérés")
     except Exception as e:
-        print("Erreur insertion label :", e)
+        print("Erreur insertion releases/tracks :", e)
 
 if __name__ == "__main__":
     print("🚀 Lancement du pipeline")
 
-    artists = fetch_french_artists(limit=5)
+    artists = fetch_french_artists(limit=1)  # ⚠️ Commence à 1 pour tester, puis passe à 50
     for artist in artists:
         print(f"→ {artist['name']}")
     insert_artists(artists)
@@ -192,10 +179,15 @@ if __name__ == "__main__":
         release_groups = fetch_release_groups(mbid)
         insert_release_groups(mbid, release_groups)
 
-        recordings = fetch_recordings(mbid)
-        insert_recordings(mbid, recordings)
+        for rg in release_groups:
+            if rg.get("primary-type") != "Album":
+                continue
 
-        releases = fetch_releases(mbid)
-        insert_labels_from_releases(mbid, releases)
+            rg_mbid = rg.get("id")
+            rg_title = rg.get("title")
+            print(f"  📀 Album : {rg_title}")
+
+            releases = fetch_releases_by_release_group(rg_mbid)
+            insert_releases_and_tracks(releases, rg_mbid)
 
     print("\n✅ Pipeline terminé")
