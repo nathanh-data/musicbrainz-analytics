@@ -127,3 +127,160 @@ release_group → release → track → recording
 
 This enables accurate album-level analytics (track count, duration, etc.)
 
+
+## ⚙️ Step 5 — Staging Layer (NEW)
+
+A staging layer was introduced to clean and normalize raw MusicBrainz data before analytics.
+
+### 📀 staging.clean_tracks
+
+Purpose:
+
+- deduplicate tracks
+- normalize durations
+- prepare BI-ready track-level data
+
+Key transformations:
+
+- remove duplicated recordings within same release
+- convert track duration from milliseconds to seconds
+- standardize track structure
+
+This staging layer improves data quality before aggregation.
+
+---
+
+## ⚙️ Step 6 — Extended Analytics Layer (NEW)
+
+The analytics layer now includes multiple granularities:
+
+### 👤 analytics.artist_stats
+
+1 row = 1 artist
+
+Contains:
+
+- number of albums
+- number of tracks
+- average track duration
+- artist productivity ranking
+
+Used for:
+
+- top artist KPIs
+- productivity analysis
+- ranking dashboards
+
+---
+
+### 📀 analytics.albums
+
+1 row = 1 album
+
+Contains:
+
+- album title
+- artist
+- release date
+- number of tracks
+- average track duration
+- total album duration
+
+Used for:
+
+- album comparison
+- catalog analysis
+- duration analytics
+
+---
+
+### 🎵 analytics.tracks
+
+1 row = 1 track
+
+Contains:
+
+- track title
+- artist
+- album
+- track duration
+- release year
+
+Used for:
+
+- detailed track analysis
+- longest tracks
+- track-level BI dashboards
+
+---
+
+### 📅 analytics.artist_yearly
+
+1 row = 1 artist + 1 year
+
+Contains:
+
+- albums released per year
+- tracks released per year
+
+Used for:
+
+- temporal analysis
+- artist evolution over time
+- yearly productivity dashboards
+
+---
+
+## 🧠 Current Data Model
+
+The project now follows a layered architecture:
+
+### Raw Layer
+
+musicbrainz_raw.artist
+musicbrainz_raw.release_group
+musicbrainz_raw.release
+musicbrainz_raw.track
+musicbrainz_raw.recording
+musicbrainz_raw.label
+
+### Staging Layer
+
+staging.clean_tracks
+
+### Analytics Layer
+
+analytics.artist_stats
+analytics.albums
+analytics.tracks
+analytics.artist_yearly
+
+---
+
+## 🔗 MusicBrainz Hierarchy
+
+The project now implements the full MusicBrainz hierarchy:
+
+artist
+→ release_group (album)
+→ release
+→ track
+→ recording
+
+This enables accurate album-level and track-level analytics.
+
+---
+
+## 📊 Power BI Integration
+
+Power BI is connected directly to PostgreSQL analytics tables.
+
+Implemented dashboards include:
+
+- artist productivity
+- album statistics
+- track analysis
+- yearly evolution
+
+The data model follows BI best practices with hierarchical relationships between:
+artist → albums → tracks

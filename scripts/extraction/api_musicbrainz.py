@@ -43,7 +43,7 @@ def fetch_release_groups(artist_mbid):
     params = {
         "artist": artist_mbid,
         "fmt": "json",
-        "limit": 200
+        "limit": 100
     }
     response = safe_get(url, params)
     if response:
@@ -166,7 +166,7 @@ def insert_releases_and_tracks(releases, rg_mbid):
 if __name__ == "__main__":
     print("🚀 Lancement du pipeline")
 
-    artists = fetch_french_artists(limit=1)  # ⚠️ Commence à 1 pour tester, puis passe à 50
+    artists = fetch_french_artists(limit=10)  # ⚠️ Commence à 1 pour tester, puis passe à 50
     for artist in artists:
         print(f"→ {artist['name']}")
     insert_artists(artists)
