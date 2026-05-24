@@ -284,3 +284,113 @@ Implemented dashboards include:
 
 The data model follows BI best practices with hierarchical relationships between:
 artist → albums → tracks
+
+
+
+## ⚠️ Current Data Limitations
+
+The current pipeline uses the MusicBrainz API with limited extraction scope.
+
+Known limitations:
+
+- Only the top 50 French artists are currently extracted
+- API pagination is not yet implemented
+- Some releases do not contain track metadata
+- Community-driven MusicBrainz data may contain missing fields
+- Data quality KPIs reflect ingested data only
+
+
+
+
+## ⚙️ API Improvements (NEW)
+
+The extraction pipeline now supports API pagination for:
+
+- artists
+- release groups
+- releases
+
+This enables scalable extraction while controlling local storage usage.
+
+Current extraction strategy includes configurable limits:
+
+- max artists
+- max release groups per artist
+- max releases per album
+
+This allows progressive scaling of the project.
+
+
+
+
+
+### 📀 staging.clean_albums
+
+Purpose:
+
+- normalize album metadata
+- extract release year
+- improve BI joins
+- prepare dimensional modeling
+
+Key transformations:
+
+- release year extraction
+- duplicate prevention
+- standardized album structure
+
+
+
+
+
+### 📋 analytics.data_quality_report
+
+Purpose:
+
+Monitor ingestion quality and missing metadata.
+
+Contains KPIs such as:
+
+- albums without tracks
+- albums without duration
+- albums without release year
+
+Used for:
+
+- pipeline monitoring
+- data validation
+- BI quality reporting
+
+
+
+
+
+### 📅 analytics.dim_date
+
+Purpose:
+
+Centralized date dimension for Power BI time intelligence.
+
+Used for:
+
+- yearly filtering
+- timeline interactions
+- temporal dashboard analysis
+
+This improves Power BI relationship modeling.
+
+
+
+
+
+## 🚀 Scalability Strategy
+
+Due to MusicBrainz data volume, the project currently uses controlled extraction limits.
+
+The architecture is designed to progressively scale through:
+
+- pagination
+- incremental loading
+- PostgreSQL indexing
+- materialized views
+- future orchestration tools

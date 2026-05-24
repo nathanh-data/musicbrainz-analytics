@@ -25,43 +25,95 @@ def safe_get(url, params, retries=3):
     print(f"Échec après {retries} tentatives pour {url}")
     return None
 
-def fetch_french_artists(limit=50):
-    params = {
-        "query": "area:France AND (type:person OR type:group)",
-        "fmt": "json",
-        "limit": limit
-    }
-    response = safe_get(BASE_URL, params)
-    if response:
+def fetch_french_artists(limit=100):
+    all_artists = []
+    offset = 0
+
+    while True:
+        params = {
+            "query": "area:France AND (type:person OR type:group)",
+            "fmt": "json",
+            "limit": 100,
+            "offset": offset
+        }
+        response = safe_get(BASE_URL, params)
+        if not response:
+            break
+
         artists = response.json().get("artists", [])
-        print(f"Nombre d'artistes récupérés : {len(artists)}")
-        return artists
-    return []
+        if not artists:
+            break
 
-def fetch_release_groups(artist_mbid):
+        all_artists.extend(artists)
+        print(f"{len(all_artists)} artistes récupérés...")
+
+        if len(all_artists) >= limit:
+            break
+
+        offset += 100
+
+    return all_artists[:limit]
+
+def fetch_release_groups(artist_mbid, max_rg=20):
     url = "https://musicbrainz.org/ws/2/release-group/"
-    params = {
-        "artist": artist_mbid,
-        "fmt": "json",
-        "limit": 100
-    }
-    response = safe_get(url, params)
-    if response:
-        return response.json().get("release-groups", [])
-    return []
+    all_release_groups = []
+    offset = 0
 
-def fetch_releases_by_release_group(rg_mbid):
+    while True:
+        params = {
+            "artist": artist_mbid,
+            "fmt": "json",
+            "limit": 100,
+            "offset": offset
+        }
+        response = safe_get(url, params)
+        if not response:
+            break
+
+        release_groups = response.json().get("release-groups", [])
+        if not release_groups:
+            break
+
+        all_release_groups.extend(release_groups)
+        print(f"    {len(all_release_groups)} release_groups récupérés...")
+
+        if len(all_release_groups) >= max_rg:
+            break
+
+        offset += 100
+
+    return all_release_groups[:max_rg]
+
+def fetch_releases_by_release_group(rg_mbid, max_releases=10):
     url = "https://musicbrainz.org/ws/2/release/"
-    params = {
-        "release-group": rg_mbid,
-        "fmt": "json",
-        "limit": 100,
-        "inc": "recordings"
-    }
-    response = safe_get(url, params)
-    if response:
-        return response.json().get("releases", [])
-    return []
+    all_releases = []
+    offset = 0
+
+    while True:
+        params = {
+            "release-group": rg_mbid,
+            "fmt": "json",
+            "limit": 100,
+            "offset": offset,
+            "inc": "recordings"
+        }
+        response = safe_get(url, params)
+        if not response:
+            break
+
+        releases = response.json().get("releases", [])
+        if not releases:
+            break
+
+        all_releases.extend(releases)
+        print(f"      {len(all_releases)} releases récupérées...")
+
+        if len(all_releases) >= max_releases:
+            break
+
+        offset += 100
+
+    return all_releases[:max_releases]
 
 def get_db_connection():
     return psycopg.connect(
@@ -127,7 +179,6 @@ def insert_releases_and_tracks(releases, rg_mbid):
 
                 for rel in releases:
                     release_id = rel.get("id")
-
                     cur.execute("""
                         INSERT INTO musicbrainz_raw.release
                         (mbid, release_group_mbid, title)
@@ -166,7 +217,7 @@ def insert_releases_and_tracks(releases, rg_mbid):
 if __name__ == "__main__":
     print("🚀 Lancement du pipeline")
 
-    artists = fetch_french_artists(limit=10)  # ⚠️ Commence à 1 pour tester, puis passe à 50
+    artists = fetch_french_artists(limit=10)
     for artist in artists:
         print(f"→ {artist['name']}")
     insert_artists(artists)
@@ -176,7 +227,7 @@ if __name__ == "__main__":
         name = artist.get("name")
         print(f"\n🎵 Traitement de {name} ({mbid})")
 
-        release_groups = fetch_release_groups(mbid)
+        release_groups = fetch_release_groups(mbid, max_rg=20)
         insert_release_groups(mbid, release_groups)
 
         for rg in release_groups:
@@ -187,7 +238,7 @@ if __name__ == "__main__":
             rg_title = rg.get("title")
             print(f"  📀 Album : {rg_title}")
 
-            releases = fetch_releases_by_release_group(rg_mbid)
+            releases = fetch_releases_by_release_group(rg_mbid, max_releases=10)
             insert_releases_and_tracks(releases, rg_mbid)
 
     print("\n✅ Pipeline terminé")
