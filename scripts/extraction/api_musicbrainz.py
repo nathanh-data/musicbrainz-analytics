@@ -3,6 +3,7 @@ import psycopg
 import time
 import os
 import random
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -23,6 +24,22 @@ def safe_get(url, params, retries=3):
             print(f"Retry {i+1}/{retries} : {e}")
             time.sleep(2 + random.uniform(0, 1))
     print(f"Échec après {retries} tentatives pour {url}")
+    return None
+
+def get_last_pipeline_run():
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT last_run
+                    FROM staging.pipeline_state
+                    WHERE pipeline_name = 'musicbrainz_api';
+                """)
+                result = cur.fetchone()
+                if result:
+                    return result[0]
+    except Exception as e:
+        print("Erreur récupération pipeline_state :", e)
     return None
 
 def fetch_french_artists(limit=100):
@@ -214,8 +231,24 @@ def insert_releases_and_tracks(releases, rg_mbid):
     except Exception as e:
         print("Erreur insertion releases/tracks :", e)
 
+def update_pipeline_run():
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    UPDATE staging.pipeline_state
+                    SET last_run = %s
+                    WHERE pipeline_name = 'musicbrainz_api';
+                """, (datetime.now(),))
+        print("✅ pipeline_state mis à jour")
+    except Exception as e:
+        print("Erreur update pipeline_state :", e)
+
 if __name__ == "__main__":
     print("🚀 Lancement du pipeline")
+
+    last_run = get_last_pipeline_run()
+    print("Dernier run pipeline :", last_run)
 
     artists = fetch_french_artists(limit=10)
     for artist in artists:
@@ -240,5 +273,7 @@ if __name__ == "__main__":
 
             releases = fetch_releases_by_release_group(rg_mbid, max_releases=10)
             insert_releases_and_tracks(releases, rg_mbid)
+    
+    update_pipeline_run()
 
     print("\n✅ Pipeline terminé")

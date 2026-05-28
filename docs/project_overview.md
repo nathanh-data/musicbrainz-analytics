@@ -394,3 +394,136 @@ The architecture is designed to progressively scale through:
 - PostgreSQL indexing
 - materialized views
 - future orchestration tools
+
+
+
+
+## ⚙️ Step 7 — SQL Industrialization (NEW)
+
+The project now includes several industrialization features inspired by real-world data engineering workflows.
+
+---
+
+### ⚡ PostgreSQL Indexing
+
+Indexes were added on key columns to improve query performance and Power BI refresh speed.
+
+Examples:
+
+* artist_mbid
+* release_group_mbid
+* recording_mbid
+* release_year
+
+Benefits:
+
+* faster joins
+* faster aggregations
+* improved dashboard responsiveness
+* scalable analytical queries
+
+---
+
+### 🧱 Materialized Views
+
+The analytics layer was migrated from standard tables to PostgreSQL materialized views.
+
+Implemented materialized views:
+
+* analytics.artist_stats
+* analytics.albums
+* analytics.tracks
+
+Benefits:
+
+* precomputed aggregations
+* faster BI queries
+* reduced Power BI load time
+* closer to production-grade analytics architecture
+
+Materialized views are refreshed manually through a dedicated SQL script.
+
+---
+
+### 🔄 Refresh Strategy
+
+A centralized SQL refresh script was implemented:
+
+sql/materialized_views/refresh_views.sql
+
+This script refreshes all analytical materialized views in the correct order.
+
+Benefits:
+
+* easier maintenance
+* reproducible refresh process
+* orchestration-ready architecture
+
+---
+
+### 📈 Incremental-Ready Pipeline
+
+The extraction pipeline now tracks execution state using:
+
+staging.pipeline_state
+
+This table stores:
+
+* pipeline name
+* last successful run timestamp
+
+The Python pipeline now:
+
+* reads previous execution state
+* updates last execution timestamp automatically
+* prepares future incremental loading strategies
+
+Although MusicBrainz API does not fully support delta extraction, the project architecture is now incremental-ready.
+
+---
+
+### 🛡️ Pipeline Reliability Improvements
+
+The extraction pipeline now includes:
+
+* retry logic
+* timeout handling
+* randomized wait times
+* API rate-limit protection
+* safer HTTP requests
+
+Benefits:
+
+* improved stability
+* reduced API failures
+* safer long-running ingestion jobs
+
+---
+
+## 🧠 Current Architecture Maturity
+
+The project now follows a layered and industrialized ELT architecture:
+
+API Extraction
+→ Raw Layer
+→ Staging Layer
+→ Analytics Materialized Views
+→ Power BI
+
+Key engineering concepts implemented:
+
+* layered data architecture
+* dimensional modeling
+* SQL transformations
+* indexing strategy
+* materialized views
+* incremental-ready ingestion
+* data quality monitoring
+* BI-ready semantic layer
+
+This architecture is designed to progressively evolve toward:
+
+* orchestration (cron / Prefect / Airflow)
+* cloud deployment
+* larger-scale ingestion
+* automated refresh pipelines
