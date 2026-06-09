@@ -6,7 +6,11 @@ import random
 from datetime import datetime
 from dotenv import load_dotenv
 
+
 load_dotenv()
+
+import sys
+sys.stdout.reconfigure(encoding="utf-8")
 
 BASE_URL = "https://musicbrainz.org/ws/2/artist/"
 HEADERS = {
@@ -240,25 +244,25 @@ def update_pipeline_run():
                     SET last_run = %s
                     WHERE pipeline_name = 'musicbrainz_api';
                 """, (datetime.now(),))
-        print("✅ pipeline_state mis à jour")
+        print(" pipeline_state mis à jour")
     except Exception as e:
         print("Erreur update pipeline_state :", e)
 
 if __name__ == "__main__":
-    print("🚀 Lancement du pipeline")
+    print(" Lancement du pipeline")
 
     last_run = get_last_pipeline_run()
     print("Dernier run pipeline :", last_run)
 
     artists = fetch_french_artists(limit=10)
     for artist in artists:
-        print(f"→ {artist['name']}")
+        print(f"- {artist['name']}")
     insert_artists(artists)
 
     for artist in artists:
         mbid = artist.get("id")
         name = artist.get("name")
-        print(f"\n🎵 Traitement de {name} ({mbid})")
+        print(f"\n Traitement de {name} ({mbid})")
 
         release_groups = fetch_release_groups(mbid, max_rg=20)
         insert_release_groups(mbid, release_groups)
@@ -269,11 +273,11 @@ if __name__ == "__main__":
 
             rg_mbid = rg.get("id")
             rg_title = rg.get("title")
-            print(f"  📀 Album : {rg_title}")
+            print(f"   Album : {rg_title}")
 
             releases = fetch_releases_by_release_group(rg_mbid, max_releases=10)
             insert_releases_and_tracks(releases, rg_mbid)
     
     update_pipeline_run()
 
-    print("\n✅ Pipeline terminé")
+    print("\n Pipeline terminé")
