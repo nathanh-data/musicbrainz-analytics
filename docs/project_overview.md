@@ -527,3 +527,216 @@ This architecture is designed to progressively evolve toward:
 * cloud deployment
 * larger-scale ingestion
 * automated refresh pipelines
+
+
+
+
+## ⚙️ Step 8 — Pipeline Monitoring & Orchestration (NEW)
+
+The project now includes a complete monitoring and orchestration layer inspired by production-grade data pipelines.
+
+---
+
+### 🔄 Automated Pipeline Execution
+
+A centralized orchestration script was implemented:
+
+```text
+orchestration/run_pipeline.sh
+```
+
+This script automatically:
+
+1. launches the extraction pipeline
+2. loads MusicBrainz data into PostgreSQL
+3. refreshes materialized views
+4. stores execution logs
+
+Benefits:
+
+* repeatable execution
+* simplified maintenance
+* production-like workflow
+
+---
+
+### ⏰ Task Scheduling
+
+Pipeline execution is automated using Windows Task Scheduler.
+
+Current workflow:
+
+```text
+Task Scheduler
+        ↓
+run_pipeline.sh
+        ↓
+Python Extraction
+        ↓
+PostgreSQL
+        ↓
+Materialized Views Refresh
+        ↓
+Monitoring Tables
+        ↓
+Power BI
+```
+
+Benefits:
+
+* fully automated refresh
+* scheduled ingestion
+* reduced manual operations
+
+---
+
+### 📋 Execution Logging
+
+Each pipeline execution generates a dedicated log file.
+
+Location:
+
+```text
+logs/
+```
+
+Example:
+
+```text
+pipeline_20260611_174048.log
+```
+
+Logs contain:
+
+* execution start time
+* extraction progress
+* errors
+* refresh status
+* execution end time
+
+Benefits:
+
+* troubleshooting
+* auditability
+* operational monitoring
+
+---
+
+### 📊 Pipeline Monitoring
+
+Pipeline executions are tracked inside PostgreSQL.
+
+#### staging.pipeline_state
+
+Stores:
+
+* pipeline name
+* last successful execution timestamp
+
+Used for:
+
+* incremental-ready architecture
+* execution tracking
+
+---
+
+#### staging.pipeline_runs
+
+Stores historical executions:
+
+* execution timestamp
+* execution status
+* processed rows
+* execution duration
+
+Used for:
+
+* operational monitoring
+* SLA tracking
+* performance analysis
+
+---
+
+### 📈 Monitoring Analytics
+
+Additional analytical objects were introduced.
+
+#### analytics.pipeline_monitoring
+
+Provides monitoring KPIs such as:
+
+* total executions
+* successful executions
+* failed executions
+* average execution duration
+* latest execution status
+
+Used for:
+
+* operational dashboards
+* pipeline health monitoring
+
+---
+
+#### analytics.data_quality_report
+
+Provides data quality KPIs such as:
+
+* albums without tracks
+* albums without duration
+* albums without release year
+* quality percentages
+
+Used for:
+
+* ingestion validation
+* data completeness tracking
+* BI quality dashboards
+
+---
+
+### 📊 Power BI Monitoring Dashboard
+
+A dedicated monitoring dashboard was added.
+
+Includes:
+
+* pipeline status KPIs
+* execution history
+* execution duration trends
+* data quality indicators
+
+Benefits:
+
+* end-to-end observability
+* operational visibility
+* production-style monitoring
+
+---
+
+## 🚀 Current Project Maturity
+
+The project now implements most core Data Engineering concepts:
+
+* API ingestion
+* PostgreSQL storage
+* layered architecture
+* SQL transformations
+* staging layer
+* analytics layer
+* indexing strategy
+* materialized views
+* automated refresh
+* orchestration
+* monitoring
+* data quality reporting
+* Power BI dashboards
+
+The architecture is designed to evolve toward:
+
+* Docker deployment
+* CI/CD pipelines
+* Prefect orchestration
+* Apache Airflow
+* Cloud infrastructure (AWS / Azure / GCP)
+* Larger-scale data ingestion
