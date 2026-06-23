@@ -1,742 +1,389 @@
-# Project Overview
+# 🎵 MusicBrainz Analytics
 
-## 🎯 Objectif
+> **End-to-end data pipeline** extracting music data from the MusicBrainz API,
+> storing it in PostgreSQL, and exposing analytical dashboards in Power BI.
 
-Créer un pipeline data permettant :
-
-1. D’extraire les données MusicBrainz
-2. De les stocker dans PostgreSQL
-3. De les transformer
-4. De créer des analyses sur les artistes français
-
-## 🧱 Étapes
-
-1. Setup projet
-2. Import base MusicBrainz
-3. Transformation des données
-4. Création tables analytiques
-5. Visualisation Power BI
-
-## 📊 Résultat attendu
-
-Un dashboard Power BI avec :
-
-- Top artistes
-- Nombre d’albums
-- Collaborations
-- Labels dominants
-
-
-
-⚙️ Current Implementation
-
-✅ Step 1 — Project Setup
-Python environment (venv)
-PostgreSQL connection via psycopg
-Environment variables with .env
-
-✅ Step 2 — Database Setup
-PostgreSQL database created (musicbrainz_db)
-Schemas created:
-musicbrainz_raw
-staging
-analytics
-
-✅ Step 3 — Data Extraction (API)
-
-Data is extracted from the MusicBrainz API and stored in raw tables.
-
-🔹 Artists
-Fetch French artists via API (area:France)
-Insert into musicbrainz_raw.artist
-Deduplication using MBID (primary key)
-
-🔹 Release Groups (Albums)
-Fetch albums per artist
-Filter only primary_type = 'Album'
-Insert into musicbrainz_raw.release_group
-
-🔹 Recordings (Tracks)
-Fetch recordings per artist
-Insert into musicbrainz_raw.recording
-
-🔹 Labels
-Extracted indirectly via releases (MusicBrainz structure)
-Insert into musicbrainz_raw.label
-
-⚠️ Notes
-API rate limiting respected (1 request/sec)
-Pagination not yet implemented (limit=100)
-Some fields may be NULL (normal for MusicBrainz data)
-
-
-⚙️ Step 4 — Analytics Layer (NEW)
-
-The project now includes a full analytical layer built on top of raw MusicBrainz data.
-
-📊 analytics.artist_stats
-
-Aggregated table at artist level:
-
-Number of albums per artist
-Number of recordings per artist
-Average recording length
-Artist ranking based on productivity
-
-👉 Used for:
-
-artist comparison
-productivity analysis
-Power BI top-level KPIs
-📀 analytics.albums
-
-Aggregated table at album level:
-
-Number of recordings per album
-Average track duration per album
-
-👉 Used for:
-
-album comparison
-content richness analysis
-album-level KPIs in Power BI
-🧠 Data modeling approach
-
-The analytics layer is built using SQL aggregations on top of raw tables:
-
-musicbrainz_raw.artist
-musicbrainz_raw.release_group
-musicbrainz_raw.recording
-
-👉 This introduces:
-
-star schema-like structure
-separation between raw and analytical data
-BI-ready datasets
-⚠️ Notes
-Album-level metrics are approximated at artist level in current version
-Future improvement: full track → album mapping via release hierarchy
-API rate limiting respected (1 request/sec)
-
-
-🔹 Improved Data Model
-
-Implemented proper MusicBrainz hierarchy:
-
-release_group → release → track → recording
-
-This enables accurate album-level analytics (track count, duration, etc.)
-
-
-## ⚙️ Step 5 — Staging Layer (NEW)
-
-A staging layer was introduced to clean and normalize raw MusicBrainz data before analytics.
-
-### 📀 staging.clean_tracks
-
-Purpose:
-
-- deduplicate tracks
-- normalize durations
-- prepare BI-ready track-level data
-
-Key transformations:
-
-- remove duplicated recordings within same release
-- convert track duration from milliseconds to seconds
-- standardize track structure
-
-This staging layer improves data quality before aggregation.
+> ⚠️ **Work in progress** — Currently running on a reduced dataset due to local
+> storage constraints. Architecture is fully designed to scale.
 
 ---
 
-## ⚙️ Step 6 — Extended Analytics Layer (NEW)
+## ⭐ Key Features
 
-The analytics layer now includes multiple granularities:
-
-### 👤 analytics.artist_stats
-
-1 row = 1 artist
-
-Contains:
-
-- number of albums
-- number of tracks
-- average track duration
-- artist productivity ranking
-
-Used for:
-
-- top artist KPIs
-- productivity analysis
-- ranking dashboards
+- MusicBrainz API ingestion with pagination support and configurable extraction limits
+- PostgreSQL layered architecture (raw → staging → analytics)
+- Materialized views for fast BI queries
+- Scheduled execution via Windows Task Scheduler (Git Bash)
+- Pipeline monitoring, execution history, observability & data quality reporting
+- Power BI dashboards with drill-down capabilities
 
 ---
 
-### 📀 analytics.albums
+## 🛠️ Technologies Used
 
-1 row = 1 album
-
-Contains:
-
-- album title
-- artist
-- release date
-- number of tracks
-- average track duration
-- total album duration
-
-Used for:
-
-- album comparison
-- catalog analysis
-- duration analytics
+|     Category    |                      Technology                 |
+|-----------------|-------------------------------------------------|
+|     Language    |                        Python                   |
+|     Database    |                     PostgreSQL                  |
+|        API      |                MusicBrainz Public API           |
+|        BI       |                   Power BI Desktop              |
+|  Orchestration  | Windows Task Scheduler + Bash Script (Git Bash) |
+| Version Control |                   Git / GitHub                  |
 
 ---
 
-### 🎵 analytics.tracks
+## 🧠 Data Engineering Concepts Demonstrated
 
-1 row = 1 track
-
-Contains:
-
-- track title
-- artist
-- album
-- track duration
-- release year
-
-Used for:
-
-- detailed track analysis
-- longest tracks
-- track-level BI dashboards
+- API ingestion with retry logic and rate limiting
+- ELT architecture (Extract → Load → Transform)
+- Data warehouse layering (raw / staging / analytics)
+- PostgreSQL schema design (multi-layer)
+- Data normalization and deduplication
+- Incremental-ready pipeline design
+- Materialized views for analytical performance
+- SQL performance optimization (indexing strategy)
+- Pipeline orchestration and scheduling
+- Execution monitoring and observability
+- Data quality reporting
+- BI semantic modeling
 
 ---
 
-### 📅 analytics.artist_yearly
+## 🏗️ Architecture
 
-1 row = 1 artist + 1 year
+```text
+MusicBrainz API
+      ↓
+Raw Layer        (musicbrainz_raw — untransformed ingested data)
+      ↓
+Staging Layer    (staging — cleaned, normalized, deduplicated)
+      ↓
+Analytics Layer  (analytics — materialized views + tables, BI-ready)
+      ↓
+Power BI Dashboards
+```
 
-Contains:
+Execution flow:
 
-- albums released per year
-- tracks released per year
-
-Used for:
-
-- temporal analysis
-- artist evolution over time
-- yearly productivity dashboards
+```text
+Windows Task Scheduler
+        ↓
+orchestration/run_pipeline.sh  (Git Bash)
+        ↓
+Python extraction → PostgreSQL ingestion
+        ↓
+Materialized views refresh
+        ↓
+logs/pipeline_YYYYMMDD_HHMMSS.log
+```
 
 ---
 
-## 🧠 Current Data Model
+## 🎼 Dataset Scope
 
-The project now follows a layered architecture:
+Current dataset size depends on extraction parameters configured in the pipeline:
 
-### Raw Layer
+|            Parameter           |            Description            |
+|--------------------------------|-----------------------------------|
+|            Artists             | French artists only (area:France) |
+|          Max artists           |   Configurable extraction limit   |
+| Max release groups per artist  |   Configurable extraction limit   |
+| Max releases per release group |   Configurable extraction limit   |
 
-musicbrainz_raw.artist
-musicbrainz_raw.release_group
-musicbrainz_raw.release
-musicbrainz_raw.track
-musicbrainz_raw.recording
-musicbrainz_raw.label
+Current extraction limits are intentionally constrained for local development.
+This controlled approach keeps the project lightweight while preserving a
+realistic and production-grade data engineering architecture.
+
+---
+
+## 📈 Monitoring & Observability
+
+The project includes operational monitoring features:
+
+- Execution history tracking (status, duration, rows processed)
+- Pipeline status monitoring (success / failure)
+- Data quality KPIs (missing metadata detection)
+- Dedicated Power BI monitoring dashboard
+
+|               Object            |        Type       |             Purpose           |
+|---------------------------------|-------------------|-------------------------------|
+|     `staging.pipeline_state`    |       Table       | Last successful run timestamp |
+|     `staging.pipeline_runs`     |       Table       |    Full execution history     |
+| `analytics.pipeline_monitoring` |       Table       |  Aggregated monitoring KPIs   |
+| `analytics.data_quality_report` | Materialized View |     Data completeness KPIs    |
+
+### Operational KPIs
+
+|                 KPI                  | Available |
+|--------------------------------------|-----------|
+|        Successful runs tracked       |    ✅    |
+|          Failed runs tracked         |    ✅    |
+| Average execution duration monitored |    ✅    |
+|      Data quality KPIs available     |    ✅    |
+
+---
+
+## 📊 Power BI Dashboards
+
+|       Dashboard         |                            Content                          |
+|-------------------------|-------------------------------------------------------------|
+|   **Overall Summary**   | Global KPIs, albums & tracks over time, artist bubble chart |
+|   **Tree Structure**    |     Drill-down: artist → release year → album → track       |
+| **Pipeline Monitoring** |      Run history, failure tracking, data quality report     |
+
+### Power BI Semantic Model
+
+```text
+              dim_date
+                  │
+            artist_yearly
+                  │
+            artist_stats
+             /        \
+          albums      tracks
+
+data_quality_report  (isolated)
+pipeline_monitoring  (isolated)
+```
+
+Relationships are primarily built on:
+
+- `artist_mbid` across artist, album and track analytics objects
+- `artist_mbid` between `artist_yearly` and `artist_stats`
+- `release_year` between `dim_date` and `artist_yearly`
+
+---
+
+## 🚀 Roadmap
+
+- [ ] Docker containerization
+- [ ] Prefect or Airflow orchestration
+- [ ] Cloud deployment (AWS / Azure / GCP)
+- [ ] Larger-scale ingestion
+- [ ] Automated Power BI refresh via gateway
+- [ ] CI/CD pipeline
+
+---
+
+## 🔧 Technical Implementation
+
+### Database Layer
+
+PostgreSQL database: `musicbrainz_db`
+
+|     Schema        |                   Purpose                 |
+|-------------------|-------------------------------------------|
+| `musicbrainz_raw` |      Raw ingested data, untransformed     |
+|    `staging`      | Cleaned, normalized and deduplicated data |
+|    `analytics`    |    BI-ready aggregated views and tables   |
+
+---
+
+### Extraction Layer
+
+Data extracted from the [MusicBrainz API](https://musicbrainz.org/doc/MusicBrainz_API).
+
+#### MusicBrainz data hierarchy
+
+```text
+Artist
+  └── Release Group (Album)
+        └── Release (Edition)
+              └── Track
+                    └── Recording
+```
+
+#### Extracted entities
+
+|     Entity     |            Raw Table            |              Description             |
+|----------------|---------------------------------|--------------------------------------|
+|    Artists     |     `musicbrainz_raw.artist`    |   French artists (person or group)   |
+| Release Groups | `musicbrainz_raw.release_group` | Albums only (`primary_type = Album`) |
+|   Releases     |     `musicbrainz_raw.release`   |Physical/digital editions per album   |
+|    Tracks      |     `musicbrainz_raw.track`     |           Tracks per release         |
+|  Recordings    |   `musicbrainz_raw.recording`   |        Unique audio recordings       |
+|    Labels      |     `musicbrainz_raw.label`     |       Record labels per release      |
+
+#### API reliability features
+
+- Retry logic (3 attempts per request)
+- Timeout handling (10 seconds)
+- Randomized wait times to avoid rate limiting
+- Pagination on artists, release groups and releases
+
+---
 
 ### Staging Layer
 
-staging.clean_tracks
+|           Table          |                        Purpose                     |
+|--------------------------|----------------------------------------------------|
+| `staging.clean_tracks`   |      Deduplicate tracks, convert ms → seconds      |
+| `staging.clean_albums`   |   Normalize album metadata, extract release year   |
+| `staging.pipeline_state` | Store last successful pipeline execution timestamp |
+| `staging.pipeline_runs`  |   Full historical log of all pipeline executions   |
+
+---
 
 ### Analytics Layer
 
-analytics.artist_stats
-analytics.albums
-analytics.tracks
-analytics.artist_yearly
-
----
-
-## 🔗 MusicBrainz Hierarchy
-
-The project now implements the full MusicBrainz hierarchy:
-
-artist
-→ release_group (album)
-→ release
-→ track
-→ recording
-
-This enables accurate album-level and track-level analytics.
-
----
-
-## 📊 Power BI Integration
-
-Power BI is connected directly to PostgreSQL analytics tables.
-
-Implemented dashboards include:
-
-- artist productivity
-- album statistics
-- track analysis
-- yearly evolution
-
-The data model follows BI best practices with hierarchical relationships between:
-artist → albums → tracks
-
-
-
-## ⚠️ Current Data Limitations
-
-The current pipeline uses the MusicBrainz API with limited extraction scope.
-
-Known limitations:
-
-- Only the top 50 French artists are currently extracted
-- API pagination is not yet implemented
-- Some releases do not contain track metadata
-- Community-driven MusicBrainz data may contain missing fields
-- Data quality KPIs reflect ingested data only
-
-
-
-
-## ⚙️ API Improvements (NEW)
-
-The extraction pipeline now supports API pagination for:
-
-- artists
-- release groups
-- releases
-
-This enables scalable extraction while controlling local storage usage.
-
-Current extraction strategy includes configurable limits:
-
-- max artists
-- max release groups per artist
-- max releases per album
-
-This allows progressive scaling of the project.
-
-
-
-
-
-### 📀 staging.clean_albums
-
-Purpose:
-
-- normalize album metadata
-- extract release year
-- improve BI joins
-- prepare dimensional modeling
-
-Key transformations:
-
-- release year extraction
-- duplicate prevention
-- standardized album structure
-
-
-
-
-
-### 📋 analytics.data_quality_report
-
-Purpose:
-
-Monitor ingestion quality and missing metadata.
-
-Contains KPIs such as:
-
-- albums without tracks
-- albums without duration
-- albums without release year
-
-Used for:
-
-- pipeline monitoring
-- data validation
-- BI quality reporting
-
-
-
-
-
-### 📅 analytics.dim_date
-
-Purpose:
-
-Centralized date dimension for Power BI time intelligence.
-
-Used for:
-
-- yearly filtering
-- timeline interactions
-- temporal dashboard analysis
-
-This improves Power BI relationship modeling.
-
-
-
-
-
-## 🚀 Scalability Strategy
-
-Due to MusicBrainz data volume, the project currently uses controlled extraction limits.
-
-The architecture is designed to progressively scale through:
-
-- pagination
-- incremental loading
-- PostgreSQL indexing
-- materialized views
-- future orchestration tools
-
-
-
-
-## ⚙️ Step 7 — SQL Industrialization (NEW)
-
-The project now includes several industrialization features inspired by real-world data engineering workflows.
-
----
-
-### ⚡ PostgreSQL Indexing
-
-Indexes were added on key columns to improve query performance and Power BI refresh speed.
-
-Examples:
-
-* artist_mbid
-* release_group_mbid
-* recording_mbid
-* release_year
-
-Benefits:
-
-* faster joins
-* faster aggregations
-* improved dashboard responsiveness
-* scalable analytical queries
-
----
-
-### 🧱 Materialized Views
-
-The analytics layer was migrated from standard tables to PostgreSQL materialized views.
-
-Implemented materialized views:
-
-* analytics.artist_stats
-* analytics.albums
-* analytics.tracks
-
-Benefits:
-
-* precomputed aggregations
-* faster BI queries
-* reduced Power BI load time
-* closer to production-grade analytics architecture
-
-Materialized views are refreshed manually through a dedicated SQL script.
-
----
-
-### 🔄 Refresh Strategy
-
-A centralized SQL refresh script was implemented:
-
+Most analytical objects are implemented as **PostgreSQL materialized views**
+for BI performance. Some supporting objects are standard tables.
+
+|               Object            |          Type          |            Granularity           |                         Key Metrics                      |
+|---------------------------------|------------------------|----------------------------------|----------------------------------------------------------|
+|     `analytics.artist_stats`    |   Materialized View    |         1 row = 1 artist         |         nb albums, nb tracks, avg duration, rank         |
+|        `analytics.albums`       |   Materialized View    |         1 row = 1 album          |         nb tracks, avg/total duration, release year      |
+|        `analytics.tracks`       |   Materialized View    |         1 row = 1 track          |               title, artist, album, duration             |
+| `analytics.data_quality_report` |   Materialized View    |         Global snapshot          |                    missing metadata KPIs                 |
+|    `analytics.artist_yearly`    |         Table          |     1 row = 1 artist × 1 year    |                  albums & tracks per year                |
+| `analytics.pipeline_monitoring` |         Table          |         Global snapshot          |               run count, failures, avg duration          |
+|      `analytics.dim_date`       |         Table          |         Date dimension           |                      year, decade, era                   |
+
+Materialized views are refreshed via:
+
+```text
 sql/materialized_views/refresh_views.sql
-
-This script refreshes all analytical materialized views in the correct order.
-
-Benefits:
-
-* easier maintenance
-* reproducible refresh process
-* orchestration-ready architecture
-
----
-
-### 📈 Incremental-Ready Pipeline
-
-The extraction pipeline now tracks execution state using:
-
-staging.pipeline_state
-
-This table stores:
-
-* pipeline name
-* last successful run timestamp
-
-The Python pipeline now:
-
-* reads previous execution state
-* updates last execution timestamp automatically
-* prepares future incremental loading strategies
-
-Although MusicBrainz API does not fully support delta extraction, the project architecture is now incremental-ready.
-
----
-
-### 🛡️ Pipeline Reliability Improvements
-
-The extraction pipeline now includes:
-
-* retry logic
-* timeout handling
-* randomized wait times
-* API rate-limit protection
-* safer HTTP requests
-
-Benefits:
-
-* improved stability
-* reduced API failures
-* safer long-running ingestion jobs
-
----
-
-## 🧠 Current Architecture Maturity
-
-The project now follows a layered and industrialized ELT architecture:
-
-API Extraction
-→ Raw Layer
-→ Staging Layer
-→ Analytics Materialized Views
-→ Power BI
-
-Key engineering concepts implemented:
-
-* layered data architecture
-* dimensional modeling
-* SQL transformations
-* indexing strategy
-* materialized views
-* incremental-ready ingestion
-* data quality monitoring
-* BI-ready semantic layer
-
-This architecture is designed to progressively evolve toward:
-
-* orchestration (cron / Prefect / Airflow)
-* cloud deployment
-* larger-scale ingestion
-* automated refresh pipelines
-
-
-
-
-## ⚙️ Step 8 — Pipeline Monitoring & Orchestration (NEW)
-
-The project now includes a complete monitoring and orchestration layer inspired by production-grade data pipelines.
-
----
-
-### 🔄 Automated Pipeline Execution
-
-A centralized orchestration script was implemented:
-
-```text
-orchestration/run_pipeline.sh
 ```
 
-This script automatically:
+---
 
-1. launches the extraction pipeline
-2. loads MusicBrainz data into PostgreSQL
-3. refreshes materialized views
-4. stores execution logs
+### Indexing Strategy
 
-Benefits:
+Indexes were added on frequently used join keys and analytical dimensions
+to improve PostgreSQL query performance and Power BI refresh speed.
 
-* repeatable execution
-* simplified maintenance
-* production-like workflow
+Key indexes include:
+
+|                    Column                    |         Purpose        |
+|----------------------------------------------|------------------------|
+| `musicbrainz_raw.release_group.artist_mbid`  | Artist → albums join   |
+| `musicbrainz_raw.release.release_group_mbid` | Album → releases join  |
+| `musicbrainz_raw.track.release_mbid`         | Release → tracks join  |
+| `musicbrainz_raw.track.recording_mbid`       | Track → recording join |
+| `analytics.albums.artist_mbid`               | BI artist filtering    |
+| `analytics.albums.release_year`              | BI time filtering      |
+| `analytics.tracks.artist_mbid`               | BI track filtering     |
+| `analytics.artist_yearly.release_year`       | BI yearly filtering    |
+
+Benefits: faster joins, improved materialized view refresh, faster Power BI loading.
 
 ---
 
-### ⏰ Task Scheduling
+### Monitoring Layer
 
-Pipeline execution is automated using Windows Task Scheduler.
+Pipeline execution is tracked automatically at each run.
 
-Current workflow:
+Each execution:
+- updates `staging.pipeline_state` with the last successful run timestamp
+- inserts a row in `staging.pipeline_runs` with status, duration and row count
+- writes a timestamped log file under `logs/`
 
-```text
-Task Scheduler
-        ↓
-run_pipeline.sh
-        ↓
-Python Extraction
-        ↓
-PostgreSQL
-        ↓
-Materialized Views Refresh
-        ↓
-Monitoring Tables
-        ↓
-Power BI
+---
+
+### Power BI Layer
+
+Power BI Desktop connects directly to PostgreSQL analytics objects via native connector.
+
+Relationships are primarily built on:
+- `artist_mbid` across artist, album and track analytics objects
+- `artist_mbid` between `artist_yearly` and `artist_stats`
+- `release_year` between `dim_date` and `artist_yearly`
+
+---
+
+## ⚠️ Current Limitations
+
+|                             Limitation                              |                             Detail                            |
+|---------------------------------------------------------------------|---------------------------------------------------------------|
+|                         Reduced dataset                             | Constrained by configurable extraction limits (local storage) |
+|                       No delta extraction                           |         MusicBrainz API does not expose change timestamps     |
+|                        Scheduled refresh                            |       Materialized views refreshed at each pipeline run       |
+|                       Local infrastructure                          |                    No cloud deployment yet                    |
+
+---
+
+## ▶️ How to Run
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/your-username/musicbrainz-analytics.git
+cd musicbrainz-analytics
 ```
 
-Benefits:
+### 2. Set up the environment
 
-* fully automated refresh
-* scheduled ingestion
-* reduced manual operations
-
----
-
-### 📋 Execution Logging
-
-Each pipeline execution generates a dedicated log file.
-
-Location:
-
-```text
-logs/
+```bash
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-Example:
+### 3. Configure environment variables
 
-```text
-pipeline_20260611_174048.log
+Create a .env file based on .env.example and update the database credentials.
+```env
+DB_NAME=musicbrainz_db
+DB_USER=your_user
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_PORT=5432
 ```
 
-Logs contain:
+### 4. Run the pipeline manually
 
-* execution start time
-* extraction progress
-* errors
-* refresh status
-* execution end time
+```bash
+python scripts/extraction/api_musicbrainz.py
+```
 
-Benefits:
+### 5. Refresh materialized views
 
-* troubleshooting
-* auditability
-* operational monitoring
+```sql
+-- Run in pgAdmin or psql
+\i sql/materialized_views/refresh_views.sql
+```
 
----
+### 6. Automated execution (optional)
 
-### 📊 Pipeline Monitoring
-
-Pipeline executions are tracked inside PostgreSQL.
-
-#### staging.pipeline_state
-
-Stores:
-
-* pipeline name
-* last successful execution timestamp
-
-Used for:
-
-* incremental-ready architecture
-* execution tracking
+Configure Windows Task Scheduler to run `orchestration/run_pipeline.sh` via Git Bash
+on your desired schedule.
 
 ---
 
-#### staging.pipeline_runs
+## 📁 Project Structure
 
-Stores historical executions:
-
-* execution timestamp
-* execution status
-* processed rows
-* execution duration
-
-Used for:
-
-* operational monitoring
-* SLA tracking
-* performance analysis
-
----
-
-### 📈 Monitoring Analytics
-
-Additional analytical objects were introduced.
-
-#### analytics.pipeline_monitoring
-
-Provides monitoring KPIs such as:
-
-* total executions
-* successful executions
-* failed executions
-* average execution duration
-* latest execution status
-
-Used for:
-
-* operational dashboards
-* pipeline health monitoring
-
----
-
-#### analytics.data_quality_report
-
-Provides data quality KPIs such as:
-
-* albums without tracks
-* albums without duration
-* albums without release year
-* quality percentages
-
-Used for:
-
-* ingestion validation
-* data completeness tracking
-* BI quality dashboards
-
----
-
-### 📊 Power BI Monitoring Dashboard
-
-A dedicated monitoring dashboard was added.
-
-Includes:
-
-* pipeline status KPIs
-* execution history
-* execution duration trends
-* data quality indicators
-
-Benefits:
-
-* end-to-end observability
-* operational visibility
-* production-style monitoring
-
----
-
-## 🚀 Current Project Maturity
-
-The project now implements most core Data Engineering concepts:
-
-* API ingestion
-* PostgreSQL storage
-* layered architecture
-* SQL transformations
-* staging layer
-* analytics layer
-* indexing strategy
-* materialized views
-* automated refresh
-* orchestration
-* monitoring
-* data quality reporting
-* Power BI dashboards
-
-The architecture is designed to evolve toward:
-
-* Docker deployment
-* CI/CD pipelines
-* Prefect orchestration
-* Apache Airflow
-* Cloud infrastructure (AWS / Azure / GCP)
-* Larger-scale data ingestion
+```text
+musicbrainz-analytics/
+├── data/
+│   ├── analytics/                   # Analytics output data
+│   ├── raw/                         # Raw ingested data
+│   └── staging/                     # Staged/cleaned data
+├── docs/
+│   ├── troubleshooting/
+│   │   └── psycopg2_encoding_error.md
+│   ├── architecture.md
+│   ├── data_sources.md
+│   ├── project_overview.md
+│   └── roadmap.md
+├── logs/                            # Timestamped execution logs
+├── notebooks/                       # Exploratory notebooks
+├── orchestration/
+│   └── run_pipeline.sh              # End-to-end orchestration (Git Bash)
+├── powerbi/                         # Power BI dashboard files
+├── scripts/
+│   ├── extraction/
+│   │   └── api_musicbrainz.py       # API extraction pipeline
+│   ├── transformation/              # SQL/Python transformation scripts
+│   └── test_connection.py           # Database connection test
+├── sql/
+│   ├── analytics/                   # Analytical view definitions
+│   ├── materialized_views/
+│   │   └── refresh_views.sql        # Centralized refresh script
+│   ├── staging/
+│   ├── setup_database.sql           # Schema and table creation
+├── .env.example                     # Environment variables (not versioned)
+├── .gitignore
+├── LICENSE
+├── README.md
+└── requirements.txt
+```

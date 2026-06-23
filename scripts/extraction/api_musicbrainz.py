@@ -5,10 +5,7 @@ import os
 import random
 from datetime import datetime
 from dotenv import load_dotenv
-
-
 load_dotenv()
-
 import sys
 sys.stdout.reconfigure(encoding="utf-8")
 
@@ -248,36 +245,113 @@ def update_pipeline_run():
     except Exception as e:
         print("Erreur update pipeline_state :", e)
 
+def log_pipeline_run(status, rows_processed, execution_time_seconds):
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO staging.pipeline_runs
+                    (
+                        pipeline_name,
+                        run_timestamp,
+                        status,
+                        rows_processed,
+                        execution_time_seconds
+                    )
+                    VALUES (%s, %s, %s, %s, %s);
+                """, (
+                    "musicbrainz_api",
+                    datetime.now(),
+                    status,
+                    rows_processed,
+                    execution_time_seconds
+                ))
+        print("Run enregistré dans pipeline_runs")
+    except Exception as e:
+        print("Erreur log pipeline run :", e)
+
 if __name__ == "__main__":
-    print(" Lancement du pipeline")
 
-    last_run = get_last_pipeline_run()
-    print("Dernier run pipeline :", last_run)
+    start_time = datetime.now()
 
-    artists = fetch_french_artists(limit=10)
-    for artist in artists:
-        print(f"- {artist['name']}")
-    insert_artists(artists)
+    try:
 
-    for artist in artists:
-        mbid = artist.get("id")
-        name = artist.get("name")
-        print(f"\n Traitement de {name} ({mbid})")
+        print("Lancement du pipeline")
 
-        release_groups = fetch_release_groups(mbid, max_rg=20)
-        insert_release_groups(mbid, release_groups)
+        last_run = get_last_pipeline_run()
+        print("Dernier run pipeline :", last_run)
 
-        for rg in release_groups:
-            if rg.get("primary-type") != "Album":
-                continue
+        artists = fetch_french_artists(limit=10)
+        rows_processed = len(artists)
 
-            rg_mbid = rg.get("id")
-            rg_title = rg.get("title")
-            print(f"   Album : {rg_title}")
+        for artist in artists:
+            print(f"- {artist['name']}")
 
-            releases = fetch_releases_by_release_group(rg_mbid, max_releases=10)
-            insert_releases_and_tracks(releases, rg_mbid)
-    
-    update_pipeline_run()
+        insert_artists(artists)
 
-    print("\n Pipeline terminé")
+        for artist in artists:
+
+            mbid = artist.get("id")
+            name = artist.get("name")
+
+            print(f"\nTraitement de {name} ({mbid})")
+
+            release_groups = fetch_release_groups(
+                mbid,
+                max_rg=20
+            )
+
+            insert_release_groups(
+                mbid,
+                release_groups
+            )
+
+            for rg in release_groups:
+
+                if rg.get("primary-type") != "Album":
+                    continue
+
+                rg_mbid = rg.get("id")
+                rg_title = rg.get("title")
+
+                print(f"Album : {rg_title}")
+
+                releases = fetch_releases_by_release_group(
+                    rg_mbid,
+                    max_releases=10
+                )
+
+                insert_releases_and_tracks(
+                    releases,
+                    rg_mbid
+                )
+
+        update_pipeline_run()
+
+        execution_time = (
+            datetime.now() - start_time
+        ).total_seconds()
+
+        log_pipeline_run(
+            status="SUCCESS",
+            rows_processed=rows_processed,
+            execution_time_seconds=execution_time
+        )
+
+        print("Pipeline terminé")
+
+    except Exception as e:
+
+        print("ERREUR PIPELINE :", e)
+
+        execution_time = (
+            datetime.now() - start_time
+        ).total_seconds()
+
+        log_pipeline_run(
+            status="FAILURE",
+            rows_processed=0,
+            execution_time_seconds=execution_time
+        )
+
+        raise

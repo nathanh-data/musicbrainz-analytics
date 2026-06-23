@@ -11,8 +11,7 @@ musicbrainz_raw
 staging
         ↓
 analytics
-        ↓
-Materialized Views
+(materialized views + analytics tables)
         ↓
 Power BI
 
@@ -62,6 +61,8 @@ Main tables:
 * release_group
 * release
 * track
+* recording
+* label
 
 Purpose:
 
@@ -103,6 +104,7 @@ Main objects:
 * artist_yearly
 * data_quality_report
 * pipeline_monitoring
+* dim_date
 
 Purpose:
 
