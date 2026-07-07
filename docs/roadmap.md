@@ -121,9 +121,12 @@ migrating to the full dataset.
 
 ### Data
 
+- [ ] Replace REST API extraction with the official MusicBrainz database dump
+- [ ] Improve artist attribution using `artist_release_group.is_track_artist`
+- [ ] Remove compilation bias from artist-level KPIs
 - [ ] Larger-scale ingestion (500+ artists)
-- [ ] Full MusicBrainz dump ingestion (Phase 2)
 - [ ] Delta / incremental loading strategy
+- [ ] Support complete MusicBrainz dataset (~100GB)
 
 ### BI & Monitoring
 
