@@ -150,7 +150,7 @@ musicbrainz-analytics/
 
 ```bash
 # Clone
-git clone https://github.com/your-username/musicbrainz-analytics.git
+git clone https://github.com/nathanh-data/musicbrainz-analytics.git
 cd musicbrainz-analytics
 
 # Setup

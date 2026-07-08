@@ -249,7 +249,7 @@ if __name__ == "__main__":
         last_run = get_last_pipeline_run()
         print("Dernier run pipeline :", last_run)
 
-        artists = fetch_french_artists(limit=25)  # Monte à 25 artistes
+        artists = fetch_french_artists(limit=25) 
         rows_processed = len(artists)
 
         for artist in artists:

@@ -125,7 +125,7 @@ Current materialized views:
 * tracks
 * data_quality_report
 
-Refreshed automatically after each pipeline execution.
+Refreshed after each pipeline execution via `sql/materialized_views/refresh_views.sql`.
 
 ---
 
