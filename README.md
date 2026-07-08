@@ -98,6 +98,8 @@ Artist-level analysis: albums per year, top albums by track count, track duratio
 
 ## 📁 Project Structure
 
+## 📁 Project Structure
+
 ```text
 musicbrainz-analytics/
 ├── data/
@@ -105,10 +107,16 @@ musicbrainz-analytics/
 │   ├── raw/                         # Raw ingested data
 │   └── staging/                     # Staged/cleaned data
 ├── docs/
+│   ├── screenshots/
+│   │   ├── overall_summary.png
+│   │   ├── tree_structure.png
+│   │   ├── pipeline_monitoring.png
+│   │   └── artist_deep_dive.png
 │   ├── troubleshooting/
 │   │   └── psycopg2_encoding_error.md
 │   ├── architecture.md
 │   ├── data_sources.md
+│   ├── known_limitations.md         # Known limitations & engineering notes
 │   ├── project_overview.md
 │   └── roadmap.md
 ├── logs/                            # Timestamped execution logs
@@ -122,12 +130,14 @@ musicbrainz-analytics/
 │   ├── transformation/              # SQL/Python transformation scripts
 │   └── test_connection.py           # Database connection test
 ├── sql/
-│   ├── analytics/                   # Analytical view definitions
+│   ├── analytics/
+│   │   └── build_analytics.sql      # Materialized views, analytics tables, indexes
 │   ├── materialized_views/
-│   │   └── refresh_views.sql        # Centralized refresh script
+│   │   └── refresh_views.sql        # Materialized view refresh only
 │   ├── staging/
-│   ├── setup_database.sql           # Schema and table creation
-├── .env.example                     # Environment variables (not versioned)
+│   │   └── build_staging.sql        # Staging table construction
+│   └── setup_database.sql           # Schema creation, raw tables, indexes
+├── .env.example                     # Environment variables template
 ├── .gitignore
 ├── LICENSE
 ├── README.md
