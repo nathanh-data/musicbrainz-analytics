@@ -89,6 +89,11 @@ Execution history, failure tracking, data quality reporting.
 
 ![Pipeline Monitoring Dashboard](docs/screenshots/pipeline_monitoring.png)
 
+### Artist Deep Dive
+Artist-level analysis: albums per year, top albums by track count, track duration details.
+
+![Artist Deep Dive Dashboard](docs/screenshots/artist_deep_dive.png)
+
 ---
 
 ## 📁 Project Structure
