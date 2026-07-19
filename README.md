@@ -12,7 +12,7 @@
 > ⚠️ **Work in progress** — Currently running on a reduced dataset due to local
 > storage constraints. Architecture is fully designed to scale.
 
-📄 **Full technical documentation:** [project_overview.md](project_overview.md)
+📄 **Full technical documentation:** [docs/project_overview.md](docs/project_overview.md)
 
 ---
 
